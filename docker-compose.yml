@@ -1,0 +1,43 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: postgres_perso
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ma_base
+      POSTGRES_USER: mon_user
+      POSTGRES_PASSWORD: mon_password
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    container_name: adminer_perso
+
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+  python_app:
+    build: ./app
+    container_name: python_import
+
+    working_dir: /app
+
+    volumes:
+      - ./app:/app
+      - ./data:/data
+
+    depends_on:
+      - postgres
+
+    tty: true
+  

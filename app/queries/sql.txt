@@ -1,0 +1,48 @@
+SELECT EXTRACT(YEAR FROM date) AS annee, SUM(distance) AS distance_totale
+FROM activities
+WHERE type_activite = 'Vélo'
+GROUP BY EXTRACT(YEAR FROM date)
+ORDER BY annee;
+
+SELECT EXTRACT(YEAR FROM date) AS annee, SUM(denivele_positif) AS dplus_totale
+FROM activities
+WHERE type_activite = 'Vélo'
+GROUP BY EXTRACT(YEAR FROM date)
+ORDER BY annee;
+
+SELECT EXTRACT(YEAR FROM date) AS annee, materiel_utilise AS velo, COUNT(*) AS sorties
+FROM activities
+WHERE type_activite = 'Vélo'
+GROUP BY EXTRACT(YEAR FROM date), materiel_utilise
+ORDER BY annee, materiel_utilise;
+
+SELECT 
+    EXTRACT(YEAR FROM date) AS annee,
+    COUNT(CASE WHEN nom ILIKE '%Sortie VCI Winkel%' THEN 1 END) AS vci_winkel,
+    COUNT(CASE WHEN nom ILIKE '%Sortie VTTu38%' THEN 1 END) AS vttu38
+FROM activities
+GROUP BY EXTRACT(YEAR FROM date)
+ORDER BY annee;
+
+SELECT nom, distance, date
+FROM activities
+WHERE type_activite = 'Vélo'
+ORDER BY distance DESC
+LIMIT 3;
+
+SELECT nom, denivele_positif, date
+FROM activities
+WHERE type_activite = 'Vélo'
+ORDER BY denivele_positif DESC
+LIMIT 3;
+
+SELECT nom, type_activite, vitesse_max * 3.6 AS vitesse_max_kmh, date
+FROM activities
+WHERE vitesse_max = (SELECT MAX(vitesse_max) FROM activities WHERE vitesse_max IS NOT NULL);
+
+
+SELECT nom, type_activite, vitesse_max * 3.6 AS vitesse_max_kmh, date
+FROM activities
+WHERE vitesse_max IS NOT NULL
+ORDER BY vitesse_max DESC
+LIMIT 10;
