@@ -1,10 +1,10 @@
-SELECT EXTRACT(YEAR FROM date) AS annee, SUM(distance) AS distance_totale
+SELECT EXTRACT(YEAR FROM date) AS annee, SUM(distance) / 1000 AS distance_totale_km
 FROM activities
 WHERE type_activite = 'Vélo'
 GROUP BY EXTRACT(YEAR FROM date)
 ORDER BY annee;
 
-SELECT EXTRACT(YEAR FROM date) AS annee, SUM(denivele_positif) AS dplus_totale
+SELECT EXTRACT(YEAR FROM date) AS annee, SUM(denivele_positif) AS dplus_total
 FROM activities
 WHERE type_activite = 'Vélo'
 GROUP BY EXTRACT(YEAR FROM date)
@@ -24,7 +24,7 @@ FROM activities
 GROUP BY EXTRACT(YEAR FROM date)
 ORDER BY annee;
 
-SELECT nom, distance, date
+SELECT nom, distance / 1000 AS distance_km, date
 FROM activities
 WHERE type_activite = 'Vélo'
 ORDER BY distance DESC

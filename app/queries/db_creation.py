@@ -8,21 +8,6 @@ import emoji
 from db_config import CONFIG
 from db_connection import db_connection
 
-MONTHS_FR_TO_EN = {
-    'janv.': 'Jan',
-    'févr.': 'Feb',
-    'mars': 'Mar',
-    'avr.': 'Apr',
-    'mai': 'May',
-    'juin': 'Jun',
-    'juil.': 'Jul',
-    'août': 'Aug',
-    'sept.': 'Sep',
-    'oct.': 'Oct',
-    'nov.': 'Nov',
-    'déc.': 'Dec'
-}
-
 def init_activities_table(connection):
     """Initialisation de la table activities."""
 
@@ -40,11 +25,6 @@ def init_activities_table(connection):
         nom TEXT,
         type_activite TEXT,
         description TEXT,
-        temps_ecoule_bis FLOAT,
-        distance_bis TEXT,
-        frequence_cardiaque_max_bis FLOAT,
-        effort_relatif_bis INTEGER,
-        deplacement_transport_bis BOOLEAN,
         note_privee TEXT,
         materiel_utilise TEXT,
         nom_fichier TEXT,
@@ -128,6 +108,15 @@ def init_activities_table(connection):
         vitesse_moyenne_ajustee_pente FLOAT,
         temps_chrono FLOAT,
         nb_total_cycles INTEGER,
+        recuperation BOOLEAN,
+        avec_animal BOOLEAN,
+        competition BOOLEAN,
+        sortie_longue BOOLEAN,
+        pour_bonne_cause BOOLEAN,
+        avec_enfant BOOLEAN,
+        distance_descente FLOAT,
+        nb_series INTEGER,
+        nb_repetitions INTEGER,
         support TEXT
     );
     """
@@ -140,42 +129,100 @@ def remove_emojis(text):
     "Retire les emojis."
     return emoji.replace_emoji(text, replace='.')
 
+def parse_date(value):
+
+    if not value:
+        return None
+
+    months = {
+        'janv.': 'Jan',
+        'févr.': 'Feb',
+        'mars': 'Mar',
+        'avr.': 'Apr',
+        'mai': 'May',
+        'juin': 'Jun',
+        'juil.': 'Jul',
+        'août': 'Aug',
+        'sept.': 'Sep',
+        'oct.': 'Oct',
+        'nov.': 'Nov',
+        'déc.': 'Dec'
+    }
+
+    value = value.replace(",", "")
+
+    for fr, en in months.items():
+        value = value.replace(fr, en)
+
+    formats = [
+        "%d %b %Y %H:%M:%S",
+        "%Y-%m-%d %H:%M:%S"
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            pass
+
+    print(f"Unknown date format: {value}")
+
+    return None
+
+def parse_float(value):
+
+    if value in (None, "", "--"):
+        return None
+
+    value = str(value).replace(",", ".")
+
+    try:
+        return float(value)
+    except ValueError:
+        print(f"Invalid float: {value}")
+        return None
+
+def parse_int(value):
+
+    if value in (None, "", "--"):
+        return None
+
+    try:
+        return int(float(str(value).replace(",", ".")))
+    except ValueError:
+        print(f"Invalid int: {value}")
+        return None
+
+def parse_bool(value):
+
+    if value is None:
+        return False
+
+    return str(value).strip().lower() in (
+        "true",
+        "1",
+        "yes",
+        "oui",
+        "vrai"
+    )
+
 def convert_row(row, ints, dates, floats, bools, strs):
     """
     Convertit les types des champs dans une ligne d'activité en fonction de leurs types attendus.
     """
     for field in ints:
-        if row.get(field):
-            row[field] = int(row[field])
-        else:
-            row[field] = None
-        print(row[field])
+        row[field] = parse_int(row[field])
     for field in dates:
-        if row.get(field):
-            for fr_month, en_month in MONTHS_FR_TO_EN.items():
-                row[field] = str(row[field]).replace(fr_month, en_month)
-            row[field] = datetime.strptime(row[field], "%d %b %Y à %H:%M:%S")
-        else:
-            row[field] = None
-        print(row[field])
+        row[field] = parse_date(row[field])
     for field in floats:
-        if row.get(field):
-            row[field] = float(row[field])
-        else:
-            row[field] = None
-        print(row[field])
+        row[field] = parse_float(row[field])
     for field in bools:
-        if row.get(field):
-            row[field] = bool(row[field])
-        else:
-            row[field] = False
-        print(row[field])
+        row[field] = parse_bool(row[field])
     for field in strs:
         if row.get(field):
             row[field] = str(remove_emojis(row[field]))
         else:
             row[field] = None
-        print(row[field])
     return row
 
 def insert_strava_data(connection):
@@ -190,11 +237,6 @@ def insert_strava_data(connection):
             nom,
             type_activite,
             description,
-            temps_ecoule_bis,
-            distance_bis,
-            frequence_cardiaque_max_bis,
-            effort_relatif_bis,
-            deplacement_transport_bis,
             note_privee,
             materiel_utilise,
             nom_fichier,
@@ -278,25 +320,35 @@ def insert_strava_data(connection):
             vitesse_moyenne_ajustee_pente,
             temps_chrono,
             nb_total_cycles,
+            recuperation,
+            avec_animal,
+            competition,
+            sortie_longue,
+            pour_bonne_cause,
+            avec_enfant,
+            distance_descente,
+            nb_series,
+            nb_repetitions,
             support
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         """
 
         ints = [
             "ID de l'activité",
-            "Effort relatif bis",
             "Nombre de sorties course à pied",
             "Nombre d'échantillons de puissance",
             "Nombre de sauts",
             "Nombre d'activités",
             "Nombre total de pas",
-            "Nombre total de cycles"
+            "Nombre total de cycles",
+            "Nombre total de séries",
+            "Nombre total de répétitions"
         ]
 
         dates = [
@@ -304,8 +356,6 @@ def insert_strava_data(connection):
         ]
 
         floats = [
-            "Temps écoulé bis",
-            "Fréquence cardiaque max. bis",
             "Poids de l'athlète",
             "Poids du vélo",
             "Temps écoulé",
@@ -364,22 +414,27 @@ def insert_strava_data(connection):
             "Heure de début",
             "Heure d'observation de la météo",
             "Heure de lever du soleil",
-            "Heure de coucher du soleil"
+            "Heure de coucher du soleil",
+            "Distance en descente"
         ]
 
         bools = [
-            "Déplacement-transport bis",
             "Utiliser l'Effort ressenti",
             "Déplacement-transport",
             "À partir du téléchargement",
-            "Signalé"
+            "Signalé",
+            "Récupération",
+            "Avec mon animal de compagnie",
+            "Compétition",
+            "Sortie longue",
+            "Pour la bonne cause",
+            "Avec enfant"
         ]
 
         strs = [
             "Nom de l'activité",
             "Type d'activité",
             "Description de l'activité",
-            "Distance bis",
             "Note privée sur les activités",
             "Matériel utilisé pour l'activité",
             "Nom du fichier",
@@ -416,11 +471,6 @@ def insert_strava_data(connection):
                         activity["Nom de l'activité"],
                         activity["Type d'activité"],
                         activity["Description de l'activité"],
-                        activity["Temps écoulé bis"],
-                        activity["Distance bis"],
-                        activity["Fréquence cardiaque max. bis"],
-                        activity["Effort relatif bis"],
-                        activity["Déplacement-transport bis"],
                         activity["Note privée sur les activités"],
                         activity["Matériel utilisé pour l'activité"],
                         activity["Nom du fichier"],
@@ -504,6 +554,15 @@ def insert_strava_data(connection):
                         activity["Vitesse moyenne ajustée selon la pente"],
                         activity["Temps enregistré par le chronomètre"],
                         activity["Nombre total de cycles"],
+                        activity.get("Récupération"),
+                        activity.get("Avec mon animal de compagnie"),
+                        activity.get("Compétition"),
+                        activity.get("Sortie longue"),
+                        activity.get("Pour la bonne cause"),
+                        activity.get("Avec enfant"),
+                        activity.get("Distance en descente"),
+                        activity.get("Nombre total de séries"),
+                        activity.get("Nombre total de répétitions"),
                         activity["Support"]
                     ))
             connection.commit()
